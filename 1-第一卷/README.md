@@ -1,5 +1,7 @@
 # 说明
->知识点来自以下两个链接，我只是做了点归纳[选了自己感兴趣的]，换了个排版而已
+>自己收集的写的好的js精妙片段（参考链接见下），也包含部分是自己写的
+
+参考链接：
 
 + [这些JavaScript编程黑科技，装逼指南，高逼格代码，让你惊叹不已](https://github.com/jawil/blog/issues/24)
 + [JavaScript 优雅的实现方式包含你可能不知道的知识点](https://github.com/jawil/blog/issues/30)
@@ -51,7 +53,7 @@ function unique(arr) {
     var res = []
     for (var i = 0, len = arr.length; i < len; i++) {
         var item = arr[i]
-        for (var j = 0, len = res.length; j < jlen; j++) {
+        for (var j = 0, jlen = res.length; j < jlen; j++) {
             if (item === res[j]) //arr数组的item在res已经存在,就跳出循环
                 break
         }
@@ -88,11 +90,88 @@ function unique(arr) {
 }
 console.log(unique(a)) // [1, 2, "1"]
 ```
+    //index是该元素的下标
+    //indexOf（ele） 获得当前元素第一次出现的数组下标 
+    //两者不相同则是出现了重复数据 过滤掉当前元素
 </details>
 
 ---
 
-### 3.数组去重进阶优化版
+### 小总结：
+
+以上方法无论马甲怎么换，思路都是一样的——`将原数组中的元素和结果数组中的元素一一比较`
+
+### 法2：考虑不开辟新空间的做法
++ 思路
+>将原数组中重复元素的最后一个元素放入结果数组中
+
++ 优缺点比较
+|优点|省空间|
+|--|--|
+|缺点|复杂度还是O(n^2)|
+
+<details>
+<summary>进阶优化版代码实例👈👈👈</summary>
+
+```javascript
+function unique(a) {
+  var res = [];
+
+  for (var i = 0, len = a.length; i < len; i++) {
+    for (var j = i + 1; j < len; j++) {
+      // 这一步十分巧妙
+      // 如果发现相同元素
+      // 则 i 自增进入下一个循环比较
+      if (a[i] === a[j])
+        j = ++i;
+    }
+
+    res.push(a[i]);
+  }
+
+  return res;
+}
+
+
+var a = [1, 1, '1', '2', 1];
+var ans = unique(a);
+console.log(ans); // => ["1", "2", 1]
+```
+</details>
+
+---
+
+### 法3：排序试试？
++ 思路
+>将数组用 sort 排序后，理论上相同的元素会被放在相邻的位置，那么比较前后位置的元素就可以了。
+
+<details>
+<summary>进阶优化版代码实例👈👈👈</summary>
+
+```javascript
+function unique(a) {
+  return a.concat().sort().filter(function(item, pos, ary) {
+    return !pos || item != ary[pos - 1];
+  });
+}
+
+
+var a = [1, 1, 3, 2, 1, 2, 4];
+var ans = unique(a);
+console.log(ans); // => [1, 2, 3, 4]
+```
+    存在的问题：
+    1 和 "1" 会被排在一起
+    var a = [1, 1, 3, 2, 1, 2, 4, '1'];
+    var ans = unique(a);
+    console.log(ans); // => [1, 2, 3, 4]
+</details>
+    
+---
+
+
+
+### 法4：生成hash检索
 + 思路
 >数组filter，obj.hasOwnProperty
 
@@ -103,7 +182,7 @@ console.log(unique(a)) // [1, 2, "1"]
 |缺点|不兼容 IE9 以下浏览器，其实也好解决，把 filter 方法用 for 循环代替或者自己模拟一个 filter 方法。|
 
 <details>
-<summary>进阶优化版代码实例👈👈👈</summary>
+<summary>hash检索代码实例👈👈👈</summary>
 
 ```javascript
 var a =  [1, 1, '1', '2', 1]
@@ -118,11 +197,62 @@ function unique(arr) {
 
 console.log(unique(a)) // [1, 2, "1"]
 ```
+
+    //hasOwnProperty 相当于基于hash查找
+    //数组里有字符串、数字等。由此根据数字+它的类型值生成一格hash值作为对象属性标识新元素。
+    //如果新对象有这个属性则是重复值，返回false，过滤掉当前值
+
+//存在问题：无法处理复杂数据类型，比如对象（因为对象作为key会变成[object Object]）
+```javascript
+var a = [{name: "hanzichi"}, {age: 30}, new String(1), new Number(1)];
+console.log(ans); // => [Object, String]
+```
+
+//诞生的改进版：将对象序列化
+```javascript
+function unique(arr) {
+    var ret = [];
+    var len = arr.length;
+    var tmp = {};
+    var tmpKey;
+    for(var i=0; i<len; i++){
+        tmpKey = typeof arr[i] + JSON.stringify(arr[i]);
+        if(!tmp[tmpKey]){
+            tmp[tmpKey] = 1;
+            ret.push(arr[i]);
+        }
+    }
+    return ret;
+}
+```
+
+//还有更炫酷拽的用法。。
+>造成上述问题的根本原因就是因为key在使用时有限制，那么有没有一种key使用没有限制的对象呢?
+
+`Map是一种新的数据类型，可以把它想象成key类型没有限制的对象,存取使用单独的get()、set()接口。`
+
+ES2015中的Map
+```javascript
+function unique(arr) {
+    var ret = [];
+    var len = arr.length;
+    var tmp = new Map();
+    for(var i=0; i<len; i++){
+        if(!tmp.get(arr[i])){
+            tmp.set(arr[i], 1);
+            ret.push(arr[i]);
+        }
+    }
+    return ret;
+}
+```
+
 </details>
 
 ---
 
-### 4.数组去重终极版
+
+### 法5：ES6
 + 思路
 >以 Set 为例，ES6 提供了新的数据结构 Set。它类似于数组，但是成员的值都是唯一的，没有重复的值。
 
@@ -136,12 +266,19 @@ console.log(unique(a)) // [1, 2, "1"]
 <summary>终结版代码实例👈👈👈</summary>
 
 ```javascript
+function unique(arr){
+    var set = new Set(arr);
+    return Array.from(set);
+}
+//或者
 const unique = a => [...new Set(a)]
 ```
 </details>
 
 ---
-
+#### readmore
++ [从 JavaScript 数组去重谈性能优化](https://github.com/lifesinger/blog/issues/113)
++ [也谈JavaScript数组去重](https://www.toobug.net/article/array_unique_in_javascript.html)
 
 ## 📚数字格式化千分符
 
@@ -183,6 +320,8 @@ console.log(formatNumber("1234567890")) // 1,234,567,890
 </details>
 
 ---
+
+
 
 ### 2.数字格式化千分符进阶版
 
