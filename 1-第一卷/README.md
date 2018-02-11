@@ -903,6 +903,7 @@ var minInNumbers = Math.min.apply(Math, numbers);//-85411
 
 
 ## 📚数组查找
+>如何优雅地在数组中寻找指定元素
 
 [⬆ Back to top](#第一卷目录)
 
